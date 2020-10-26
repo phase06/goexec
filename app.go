@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"goexec/execServer/handler"
 	"goexec/execServer/helper"
 	"log"
@@ -42,13 +43,25 @@ func startTaskPolling() {
 
 func main() {
 
-	helper.StartupMessage(":3000", Version)
+	// cmdline arg
+	var portFlag = flag.String("port", "3000", "Port to start this app")
+	var dropFlag = flag.Bool("drop", false, "true to drop all datas")
+	flag.Parse()
+
+	defaultPort := "3000"
+	if *portFlag != "" {
+		defaultPort = *portFlag
+	}
+	helper.StartupMessage(":"+defaultPort, Version)
 	// open db
 	opt := badger.DefaultOptions("db").WithTruncate(true).WithValueLogFileSize(256 << 20)
 	var err error
 	handler.TaskDB, err = badger.Open(opt)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if *dropFlag {
+		handler.TaskDB.DropAll()
 	}
 
 	defer handler.TaskDB.Close()
