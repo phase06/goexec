@@ -4,12 +4,16 @@ import (
 	"goexec/execServer/handler"
 	"goexec/execServer/helper"
 	"log"
+	"sync"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 
 	badger "github.com/dgraph-io/badger/v2"
 )
+
+var mutex = &sync.Mutex{}
 
 // Version of current package
 const Version = "0.5.0"
@@ -26,6 +30,16 @@ func setupRoutes(app *fiber.App) {
 	app.Post("/api/execute", handler.QueueTask)
 }
 
+func startTaskPolling() {
+	for {
+		time.Sleep(5 * time.Second)
+		// to ensure only one task is being executed
+		mutex.Lock()
+		handler.ProcessQueue()
+		mutex.Unlock()
+	}
+}
+
 func main() {
 
 	helper.StartupMessage(":3000", Version)
@@ -38,6 +52,8 @@ func main() {
 	}
 
 	defer handler.TaskDB.Close()
+
+	go startTaskPolling()
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	app.Use(logger.New())
