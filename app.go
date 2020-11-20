@@ -72,6 +72,6 @@ func main() {
 	app.Use(logger.New())
 
 	setupRoutes(app)
-	app.Listen(":3000")
+	app.Listen(":" + defaultPort)
 
 }
